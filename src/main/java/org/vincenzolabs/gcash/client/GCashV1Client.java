@@ -100,11 +100,17 @@ public class GCashV1Client {
     @Value("${gcash.signing.publicKey:}")
     private String publicKey;
 
-    @Value("${gcash.payment.gateway.url:}")
-    private String paymentGatewayUrl;
-
     @Value("${gcash.signing.privateKey:}")
     private String privateKey;
+
+    @Value("${gcash.signing.keyVersion:0}")
+    private String keyVersion;
+
+    @Value("${gcash.signing.algorithm:RSA256}")
+    private String algorithm;
+
+    @Value("${gcash.paymentGatewayUrl:}")
+    private String paymentGatewayUrl;
 
     @Value("${gcash.clientId:}")
     private String clientId;
@@ -112,14 +118,10 @@ public class GCashV1Client {
     @Value("${gcash.zoneId:Asia/Manila}")
     private String zoneId;
 
-    @Value("${gcash.signature.keyVersion:0}")
-    private String keyVersion;
-
-    @Value("${gcash.signature.algorithm:RSA256}")
-    private String algorithm;
-
     @Value("${spring.profiles.active:}")
     private String activeProfile;
+
+    private WebClient webClient;
 
     /**
      * Default constructor.
@@ -342,6 +344,10 @@ public class GCashV1Client {
     }
 
     private WebClient getWebClient() {
+        if (webClient != null) {
+            return webClient;
+        }
+
         boolean debugMode = Pattern.compile("local|dev|test").matcher(activeProfile).matches();
         if (debugMode) {
             HttpClient httpClient = HttpClient.create()

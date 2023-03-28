@@ -64,6 +64,7 @@ public class OpenUserInfo {
     /**
      * The {@link UserName}.
      */
+    @JsonProperty("userName")
     private UserName username;
 
     /**
