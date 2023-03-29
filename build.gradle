@@ -1,0 +1,167 @@
+plugins {
+    id 'com.github.ben-manes.versions' version '0.46.0'
+    id 'jvm-test-suite'
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+}
+
+logger.quiet "Running Java version: " + System.properties['java.vm.vendor'] + " " + System.properties['java.vm.name'] + " " + System.properties['java.version']
+logger.quiet "Running Gradle version: $gradle.gradleVersion"
+
+group 'org.vincenzolabs'
+project.ext.set('buildNumber', System.getenv('VERSION_NUMBER') ?: '1.0-SNAPSHOT')
+version = project.ext.buildNumber
+sourceCompatibility = '17'
+logger.quiet "Building version: $version"
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    springBootVersion = '3.0.4'
+    springVersion = '6.0.7'
+    lombokVersion = '1.18.26'
+    jacksonVersion = '2.14.2'
+    validationApiVersion = '3.0.2'
+    commonsCodecVersion = '1.15'
+    commonsLangVersion = '3.12.0'
+
+    reactorTestVersion = '3.5.4'
+    junitVersion = '5.9.2'
+    assertjVersion = '3.24.2'
+}
+
+dependencies {
+    implementation "org.springframework.boot:spring-boot-starter-webflux:$springBootVersion"
+    implementation "org.springframework:spring-web:$springVersion"
+    implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
+    implementation "jakarta.validation:jakarta.validation-api:$validationApiVersion"
+    implementation "commons-codec:commons-codec:$commonsCodecVersion"
+    implementation "org.apache.commons:commons-lang3:$commonsLangVersion"
+
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+
+    testImplementation "org.springframework.boot:spring-boot-starter-test:$springBootVersion"
+    testImplementation "io.projectreactor:reactor-test:$reactorTestVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    repositories {
+        maven {
+            url 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username = System.getenv('OSSRH_USERNAME')
+                password = System.getenv('OSSRH_PASSWORD')
+            }
+        }
+    }
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId 'org.vincenzolabs'
+            artifactId 'gcash-java-spring-sdk'
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                name = 'GCash-Java-Spring-SDK'
+                packaging = 'jar'
+                description = 'GCash-Java-Spring-SDK is a client library written in Java 17 and Spring Boot 3 for invoking GCash payment services.'
+                url = 'https://github.com/vincenzolabs/GCash-Java-Spring-SDK'
+                scm {
+                    connection = 'scm:git:git://github.com/vincenzolabs/GCash-Java-Spring-SDK.git'
+                    developerConnection = 'scm:git:ssh://github.com/vincenzolabs/GCash-Java-Spring-SDK.git'
+                    url = 'https://github.com/vincenzolabs/GCash-Java-Spring-SDK/tree/master'
+                }
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'rvbabilonia'
+                        name = 'Rey Vincent Babilonia'
+                        email = 'rvbabilonia@gmail.com'
+                    }
+                }
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty("signingKey")
+    def signingPassword = findProperty("signingPassword")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign publishing.publications.mavenJava
+}
+
+javadoc {
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+}
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+            dependencies {
+                implementation "org.springframework.boot:spring-boot-starter-test:$springBootVersion"
+                implementation "io.projectreactor:reactor-test:$reactorTestVersion"
+                implementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+                implementation "org.assertj:assertj-core:$assertjVersion"
+            }
+        }
+        integrationTest(JvmTestSuite) {
+            sources.java.srcDirs = ['src/integrationTest/java']
+            sources.resources.srcDirs = ['src/integrationTest/resources']
+            dependencies {
+                implementation project()
+                implementation sourceSets.test.output
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter(test)
+                    }
+                }
+            }
+        }
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+}
+
+wrapper {
+    gradleVersion = '8.0.2'
+}
