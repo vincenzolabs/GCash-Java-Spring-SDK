@@ -21,7 +21,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Publish package
-        run: ./gradlew publish --debug
+        run: ./gradlew publish --stacktrace
         env:
           VERSION_NUMBER: ${{ github.event.release.tag_name }}
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
